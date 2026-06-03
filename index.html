@@ -1,297 +1,1142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Campus Amenities Map - iOS Prototype</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --ios-bg: #1c1c1e;
-            --purple-icon: #7879f1;
-            --green-icon: #4cd964;
-            --blue-icon: #2f80ed;
-            --red-icon: #eb5757;
-            --sidebar-bg: rgba(30, 30, 30, 0.75);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CampusFind – UW Restroom Finder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --ios-blue: #007AFF;
+    --ios-green: #34C759;
+    --ios-red: #FF3B30;
+    --ios-yellow: #FFCC00;
+    --ios-purple: #AF52DE;
+    --ios-gray: #8E8E93;
+    --ios-gray2: #AEAEB2;
+    --ios-gray3: #C7C7CC;
+    --ios-gray4: #D1D1D6;
+    --ios-gray5: #E5E5EA;
+    --ios-gray6: #F2F2F7;
+    --ios-label: #000000;
+    --ios-label2: #3C3C43;
+    --ios-bg: #FFFFFF;
+    --ios-grouped-bg: #F2F2F7;
+    --ios-fill: rgba(120,120,128,0.12);
+    --ios-fill2: rgba(120,120,128,0.16);
+    --sheet-radius: 16px;
+    --font: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  }
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+  body {
+    font-family: var(--font);
+    background: #e8e8ee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
 
-        /* Phone Frame Container to mimic iOS device preview */
-        .phone-container {
-            width: 100vw;
-            height: 100vh;
-            max-width: 430px; /* iPhone 15 Pro Max width ratio */
-            max-height: 932px;
-            position: relative;
-            background: #000;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
-        }
+  /* ─── Phone Frame ─── */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: #1c1c1e;
+    border-radius: 54px;
+    padding: 14px;
+    position: relative;
+    box-shadow:
+      inset 0 0 0 1.5px #3a3a3c,
+      0 40px 80px rgba(0,0,0,0.4),
+      0 10px 20px rgba(0,0,0,0.2);
+  }
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 42px;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+  }
+  /* Dynamic island */
+  .dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 37px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 100;
+  }
+  /* Status bar */
+  .status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 59px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    z-index: 90;
+    pointer-events: none;
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+  .status-icons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .status-icons svg { fill: #fff; }
 
-        @media (min-width: 440px) {
-            .phone-container {
-                border: 12px solid #2c2c2e;
-                border-radius: 48px;
-            }
-        }
+  /* ─── Map ─── */
+  .map {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #1a2744;
+  }
+  .map-svg {
+    width: 100%;
+    height: 100%;
+  }
 
-        /* Interactive Map Canvas */
-        #map {
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
+  /* ─── Toolbar (Apple Maps right side) ─── */
+  .map-toolbar {
+    position: absolute;
+    right: 12px;
+    top: 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    z-index: 50;
+    border-radius: 13px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .tool-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.95);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 22px;
+    position: relative;
+    transition: background 0.12s;
+    border-bottom: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .tool-btn:last-child { border-bottom: none; }
+  .tool-btn:active { background: rgba(0,0,0,0.08); }
+  .tool-btn.active { background: rgba(0,122,255,0.1); }
+  .tool-btn .tool-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ios-blue);
+    border: 1.5px solid #fff;
+    display: none;
+  }
+  .tool-btn.active .tool-dot { display: block; }
 
-        /* Apple Maps Dark Mode overlay effect */
-        .map-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 35, 35, 0.15);
-            mix-blend-mode: color;
-            pointer-events: none;
-            z-index: 2;
-        }
+  /* Location button */
+  .location-btn {
+    position: absolute;
+    right: 12px;
+    bottom: 100px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    z-index: 50;
+    font-size: 20px;
+  }
 
-        /* iOS Floating Sidebar Control panel */
-        .ios-sidebar {
-            position: absolute;
-            top: 100px;
-            right: 16px;
-            width: 44px;
-            background: var(--sidebar-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 12px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 4px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
+  /* AI Chat FAB */
+  .chat-fab {
+    position: absolute;
+    bottom: 38px;
+    right: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.35);
+    z-index: 50;
+    transition: background 0.12s, transform 0.1s;
+  }
+  .chat-fab:active { background: #f0f0f5; transform: scale(0.94); }
 
-        .sidebar-btn {
-            width: 36px;
-            height: 36px;
-            margin: 4px 0;
-            border-radius: 8px;
-            border: none;
-            background: transparent;
-            color: #fff;
-            font-size: 18px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
+  /* ─── Map Pins ─── */
+  .map-pin {
+    cursor: pointer;
+  }
+  .map-pin:active { opacity: 0.8; }
+  .map-pin circle { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35)); }
+  .microwave-pin { cursor: default; }
 
-        .sidebar-btn:active {
-            transform: scale(0.92);
-            background: rgba(255,255,255,0.1);
-        }
+  /* ─── Bottom Sheet ─── */
+  .sheet-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+  }
+  .sheet-overlay.active { pointer-events: all; }
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    transition: background 0.3s;
+  }
+  .sheet-overlay.active .sheet-backdrop { background: rgba(0,0,0,0.3); }
 
-        /* Specific sidebar icon treatments matching your layout colorways */
-        .sidebar-btn.microwave { color: var(--purple-icon); }
-        .sidebar-btn.water { color: var(--blue-icon); }
-        .sidebar-btn.menstrual { color: var(--red-icon); }
-        .sidebar-btn.restroom { color: var(--green-icon); }
-        .sidebar-btn.location { color: #fff; }
+  .sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--ios-grouped-bg);
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    transform: translateY(100%);
+    transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
+    max-height: 88%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 34px;
+  }
+  .sheet-overlay.active .sheet { transform: translateY(0); }
 
-        .sidebar-btn.active {
-            background: rgba(255,255,255,0.15);
-        }
+  .sheet-handle-wrap {
+    position: sticky;
+    top: 0;
+    background: var(--ios-grouped-bg);
+    padding: 8px 0 6px;
+    z-index: 2;
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  }
+  .sheet-handle {
+    width: 36px;
+    height: 5px;
+    background: var(--ios-gray3);
+    border-radius: 3px;
+    margin: 0 auto;
+  }
 
-        /* Bottom Floating AI Chat Icon */
-        .ai-chat-bubble {
-            position: absolute;
-            bottom: 40px;
-            right: 24px;
-            width: 60px;
-            height: 60px;
-            background: #ffffff;
-            border-radius: 50%;
-            z-index: 10;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
+  /* Sheet Header */
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 12px;
+    position: sticky;
+    top: 29px;
+    background: var(--ios-grouped-bg);
+    z-index: 2;
+  }
+  .sheet-header-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ios-label);
+    flex: 1;
+    text-align: center;
+    letter-spacing: -0.3px;
+  }
+  .sheet-header-icon {
+    font-size: 18px;
+    margin-right: 6px;
+  }
+  .close-btn {
+    width: 30px;
+    height: 30px;
+    background: var(--ios-fill2);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ios-gray);
+    flex-shrink: 0;
+    transition: background 0.12s;
+  }
+  .close-btn:active { background: var(--ios-gray4); }
 
-        .ai-chat-bubble:active {
-            transform: scale(0.9);
-        }
+  /* Section */
+  .sheet-section {
+    background: var(--ios-bg);
+    border-radius: 12px;
+    margin: 0 16px 10px;
+    overflow: hidden;
+  }
 
-        .ai-chat-inner {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 2px solid #e5e5ea;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #1c1c1e;
-            font-size: 22px;
-        }
+  /* ─── Restroom Card ─── */
+  .restroom-card {
+    display: flex;
+    gap: 0;
+    padding: 14px;
+    background: var(--ios-bg);
+    cursor: pointer;
+    transition: background 0.1s;
+    border-bottom: 0.5px solid var(--ios-gray5);
+  }
+  .restroom-card:last-of-type { border-bottom: none; }
+  .restroom-card:active { background: var(--ios-fill); }
+  .restroom-photo {
+    width: 80px;
+    height: 72px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #c5b9a8;
+  }
+  .restroom-photo svg { width: 100%; height: 100%; display: block; }
+  .restroom-details {
+    flex: 1;
+    padding-left: 12px;
+    min-width: 0;
+  }
+  .restroom-location-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ios-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+  }
+  .restroom-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ios-label);
+    margin-bottom: 4px;
+    letter-spacing: -0.2px;
+  }
+  .stars-display {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 10px;
+  }
+  .star-filled { color: var(--ios-label); font-size: 13px; }
+  .star-empty { color: var(--ios-gray4); font-size: 13px; }
 
-        /* Custom Map Marker Leaflet Classes */
-        .custom-marker {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            border: 1.5px solid rgba(255,255,255,0.8);
-            transition: all 0.3s ease;
-        }
+  /* Card action buttons — large, accessible */
+  .card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .card-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    transition: opacity 0.1s, transform 0.1s;
+    padding: 0 12px;
+  }
+  .card-btn:active { opacity: 0.75; transform: scale(0.97); }
+  .card-btn-rating {
+    background: var(--ios-blue);
+    color: #fff;
+  }
+  .card-btn-report {
+    background: var(--ios-fill2);
+    color: var(--ios-label2);
+  }
+  .card-btn svg { flex-shrink: 0; }
 
-        .marker-microwave { background-color: var(--purple-icon); color: white; }
-        .marker-restroom { background-color: var(--green-icon); color: #111; }
-        .marker-water { background-color: var(--blue-icon); color: white; }
-        .marker-menstrual { background-color: var(--red-icon); color: white; }
+  /* Report new restroom button */
+  .report-new-wrap {
+    padding: 4px 16px 2px;
+  }
+  .report-new-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 50px;
+    background: var(--ios-bg);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ios-blue);
+    letter-spacing: -0.2px;
+    transition: background 0.12s;
+  }
+  .report-new-btn:active { background: var(--ios-fill); }
 
-        /* Leaflet adjustment overrides to blend neatly into dark theme Apple UI */
-        .leaflet-control-zoom { display: none !important; }
-        .leaflet-attribution-control { display: none !important; }
-    </style>
+  /* ─── Rating Sheet ─── */
+  .rating-section {
+    padding: 14px 16px;
+  }
+  .rating-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ios-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+  }
+  .stars-interactive {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .star-tap {
+    font-size: 42px;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.1s;
+    user-select: none;
+  }
+  .star-tap:active { transform: scale(0.85); opacity: 0.7; }
+  .star-tap.filled { color: #1c1c1e; }
+  .star-tap.empty { color: #d0d0d8; }
+
+  /* Primary button — full width */
+  .primary-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 52px;
+    background: var(--ios-blue);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    transition: opacity 0.12s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .primary-btn:active { opacity: 0.85; transform: scale(0.98); }
+  .primary-btn.danger { background: var(--ios-red); }
+
+  /* Secondary / destructive row */
+  .secondary-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 52px;
+    background: var(--ios-fill);
+    color: var(--ios-label);
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    transition: background 0.12s;
+    margin-top: 8px;
+  }
+  .secondary-btn:active { background: var(--ios-gray5); }
+
+  /* ─── Segmented Control ─── */
+  .segment-wrap {
+    background: var(--ios-fill);
+    border-radius: 9px;
+    padding: 2px;
+    display: flex;
+    gap: 2px;
+    margin-bottom: 0;
+  }
+  .seg-btn {
+    flex: 1;
+    height: 32px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ios-label2);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: -0.1px;
+  }
+  .seg-btn.active {
+    background: var(--ios-bg);
+    color: var(--ios-label);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+
+  /* ─── Text input (iOS style) ─── */
+  .ios-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--ios-bg);
+    border-radius: 12px;
+    padding: 0 14px;
+    margin: 0 16px;
+    height: 48px;
+    gap: 8px;
+    border: 0.5px solid var(--ios-gray4);
+  }
+  .ios-input-wrap input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    font-family: var(--font);
+    color: var(--ios-label);
+    background: transparent;
+  }
+  .ios-input-wrap input::placeholder { color: var(--ios-gray3); }
+  .ios-clear {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--ios-gray3);
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ─── Toast ─── */
+  .toast {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(50,50,50,0.95);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 22px;
+    white-space: nowrap;
+    z-index: 99;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    backdrop-filter: blur(10px);
+    letter-spacing: -0.2px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ─── Section labels ─── */
+  .section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ios-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px 6px;
+  }
+  .section-footer {
+    font-size: 12px;
+    color: var(--ios-gray);
+    padding: 6px 16px 4px;
+    line-height: 1.4;
+  }
+
+  /* Home indicator */
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 10;
+  }
+</style>
 </head>
 <body>
 
-    <div class="phone-container">
-        <div id="map"></div>
-        <div class="map-overlay"></div>
+<div class="phone">
+  <div class="phone-inner">
+    <div class="dynamic-island"></div>
 
-        <div class="ios-sidebar">
-            <button class="sidebar-btn microwave active" onclick="toggleLayer('microwave', this)" title="Microwaves">
-                <i class="fa-solid fa-cookie-bite"></i>
-            </button>
-            <button class="sidebar-btn water active" onclick="toggleLayer('water', this)" title="Water Stations">
-                <i class="fa-solid fa-droplet"></i>
-            </button>
-            <button class="sidebar-btn menstrual active" onclick="toggleLayer('menstrual', this)" title="Menstrual Products">
-                <i class="fa-solid fa-circle-h"></i>
-            </button>
-            <button class="sidebar-btn restroom active" onclick="toggleLayer('restroom', this)" title="Restrooms">
-                <i class="fa-solid fa-toilet"></i>
-            </button>
-            <button class="sidebar-btn location" onclick="recenterMap()" title="Current Location">
-                <i class="fa-solid fa-location-arrow"></i>
-            </button>
-        </div>
-
-        <div class="ai-chat-bubble" onclick="triggerChatAlert()">
-            <div class="ai-chat-inner">
-                <i class="fa-solid fa-comment-dots"></i>
-            </div>
-        </div>
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1" opacity=".3"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5C10.2 2.5 12.2 3.4 13.6 4.9L15 3.4C13.2 1.5 10.7 0.5 8 0.5C5.3 0.5 2.8 1.5 1 3.4L2.4 4.9C3.8 3.4 5.8 2.5 8 2.5Z" opacity=".3"/><path d="M8 5.5C9.4 5.5 10.7 6.1 11.6 7L13 5.5C11.7 4.2 9.9 3.5 8 3.5C6.1 3.5 4.3 4.2 3 5.5L4.4 7C5.3 6.1 6.6 5.5 8 5.5Z" opacity=".6"/><circle cx="8" cy="10" r="1.5"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3" stroke="white" stroke-width="1" fill="none" opacity=".35"/><rect x="1.5" y="2.5" width="16" height="7" rx="1.5" fill="white"/><rect x="22" y="4" width="3" height="4" rx="1" fill="white" opacity=".4"/></svg>
+      </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // Coordinates pinned directly to the University of Washington main campus footprint from your mockup
-        const uwCenter = [47.6553, -122.3078];
-        
-        // Initialize Map engine with sleek dark theme settings
-        const map = L.map('map', {
-            center: uwCenter,
-            zoom: 16.5,
-            zoomControl: false,
-            minZoom: 15,
-            maxZoom: 19
-        });
+    <!-- Map SVG -->
+    <div class="map">
+      <svg class="map-svg" viewBox="0 0 393 852" xmlns="http://www.w3.org/2000/svg">
+        <!-- Map base tiles -->
+        <rect width="393" height="852" fill="#1a2744"/>
+        <!-- Roads -->
+        <rect x="0" y="155" width="393" height="14" fill="#243450" opacity="0.9"/>
+        <rect x="0" y="300" width="393" height="12" fill="#243450" opacity="0.9"/>
+        <rect x="0" y="460" width="393" height="14" fill="#243450" opacity="0.9"/>
+        <rect x="0" y="630" width="393" height="18" fill="#243450" opacity="0.9"/>
+        <rect x="100" y="0" width="13" height="852" fill="#243450" opacity="0.9"/>
+        <rect x="250" y="0" width="13" height="852" fill="#243450" opacity="0.9"/>
+        <rect x="350" y="0" width="13" height="852" fill="#243450" opacity="0.9"/>
+        <!-- Road labels -->
+        <text x="40" y="148" fill="#9ab0c8" font-size="9" font-weight="600" font-family="-apple-system,sans-serif" letter-spacing="0.5">15TH AVE NE</text>
+        <text x="196" y="625" fill="#9ab0c8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif" letter-spacing="0.5">OKANOGAN LN NE</text>
+        <text x="130" y="845" fill="#9ab0c8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif" letter-spacing="0.5">NE PACIFIC ST</text>
+        <!-- Green areas -->
+        <ellipse cx="200" cy="340" rx="60" ry="50" fill="#1e3d1e" opacity="0.7"/>
+        <rect x="120" y="310" width="170" height="90" rx="8" fill="#1e3d1e" opacity="0.5"/>
+        <!-- Buildings -->
+        <rect x="115" y="60" width="125" height="85" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="250" y="60" width="95" height="75" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="20" y="60" width="70" height="60" rx="4" fill="#1d3052" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="20" y="170" width="70" height="120" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="115" y="170" width="125" height="120" rx="4" fill="#152a48" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="20" y="315" width="75" height="135" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="270" y="170" width="105" height="75" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="115" y="315" width="130" height="135" rx="4" fill="#152a48" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="270" y="315" width="105" height="135" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="20" y="475" width="80" height="140" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="115" y="475" width="120" height="140" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="255" y="475" width="120" height="140" rx="4" fill="#152a48" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="20" y="645" width="130" height="90" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <rect x="255" y="645" width="120" height="90" rx="4" fill="#1d3152" stroke="#2a4870" stroke-width="0.5"/>
+        <!-- Map labels -->
+        <text x="127" y="95" fill="#9ecfe8" font-size="9" font-weight="600" font-family="-apple-system,sans-serif">University of Washington</text>
+        <text x="148" y="108" fill="#9ecfe8" font-size="9" font-weight="600" font-family="-apple-system,sans-serif">School of Law</text>
+        <text x="258" y="92" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Burke Museum</text>
+        <text x="28" y="82" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Café</text>
+        <text x="28" y="93" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Allegro</text>
+        <text x="28" y="218" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Henry A.</text>
+        <text x="28" y="229" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Gallery</text>
+        <text x="125" y="356" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Liberal Arts Quad</text>
+        <text x="270" y="210" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Jacob Lawrence</text>
+        <text x="270" y="221" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Gallery</text>
+        <text x="255" y="520" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Allen Ctr CS&amp;E</text>
+        <text x="28" y="515" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Hans Rosling</text>
+        <text x="28" y="526" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Center</text>
+        <text x="28" y="690" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Rotunda</text>
+        <text x="258" y="688" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Winkenweder</text>
+        <text x="258" y="699" fill="#9ecfe8" font-size="8" font-weight="600" font-family="-apple-system,sans-serif">Forest Sci Lab</text>
+        <!-- Red Square dot -->
+        <circle cx="198" cy="345" r="7" fill="#243450" stroke="#4a7fc1" stroke-width="1.5"/>
+        <text x="210" y="349" fill="#9ecfe8" font-size="9" font-weight="600" font-family="-apple-system,sans-serif">Red Square</text>
+        <!-- Parking -->
+        <circle cx="168" cy="415" r="11" fill="#1d3060" stroke="#2e4878" stroke-width="1"/>
+        <text x="164" y="419" fill="#6ba3d9" font-size="10" font-weight="700" font-family="-apple-system,sans-serif">P</text>
 
-        // Apply Premium Dark Matter map skin mimicking modern Apple Maps configuration
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: 'CartoDB'
-        }).addTo(map);
+        <!-- ── TOILET PINS ── -->
+        <!-- Pin 1: UW School of Law -->
+        <g class="map-pin" onclick="openList('uw-law')" aria-label="UW Law Restrooms">
+          <circle cx="185" cy="110" r="18" fill="#34C759" stroke="#fff" stroke-width="2.5"/>
+          <text x="185" y="116" text-anchor="middle" font-size="16" fill="#fff">🚽</text>
+        </g>
+        <!-- Pin 2: Henry Art Gallery -->
+        <g class="map-pin" onclick="openList('henry')" aria-label="Henry Art Gallery Restrooms">
+          <circle cx="55" cy="230" r="18" fill="#34C759" stroke="#fff" stroke-width="2.5"/>
+          <text x="55" y="236" text-anchor="middle" font-size="16" fill="#fff">🚽</text>
+        </g>
+        <!-- Pin 3: The Quad -->
+        <g class="map-pin" onclick="openList('quad')" aria-label="Quad Restrooms">
+          <circle cx="185" cy="355" r="18" fill="#34C759" stroke="#fff" stroke-width="2.5"/>
+          <text x="185" y="361" text-anchor="middle" font-size="16" fill="#fff">🚽</text>
+        </g>
+        <!-- Pin 4: Hans Rosling -->
+        <g class="map-pin" onclick="openList('rosling')" aria-label="Hans Rosling Center Restrooms">
+          <circle cx="55" cy="545" r="18" fill="#34C759" stroke="#fff" stroke-width="2.5"/>
+          <text x="55" y="551" text-anchor="middle" font-size="16" fill="#fff">🚽</text>
+        </g>
+        <!-- Pin 5: Allen CSE -->
+        <g class="map-pin" onclick="openList('allen')" aria-label="Allen CS&amp;E Restrooms">
+          <circle cx="315" cy="545" r="18" fill="#34C759" stroke="#fff" stroke-width="2.5"/>
+          <text x="315" y="551" text-anchor="middle" font-size="16" fill="#fff">🚽</text>
+        </g>
 
-        // Marker Storage Groups
-        const layers = {
-            microwave: L.layerGroup(),
-            water: L.layerGroup(),
-            menstrual: L.layerGroup(),
-            restroom: L.layerGroup()
-        };
+        <!-- ── MICROWAVE PINS (toggleable) ── -->
+        <g class="microwave-pin" id="mpin-law" aria-label="UW Law Microwave">
+          <circle cx="148" cy="110" r="16" fill="#5856D6" stroke="#fff" stroke-width="2"/>
+          <!-- microwave SVG icon centered at 148,110 -->
+          <rect x="137" y="103" width="22" height="14" rx="2.5" stroke="#fff" stroke-width="1.5" fill="none"/>
+          <rect x="138.5" y="104.5" width="14" height="11" rx="1.5" stroke="#fff" stroke-width="1.1" fill="none"/>
+          <rect x="154" y="106.5" width="3" height="2" rx="0.5" fill="#fff"/>
+          <rect x="154" y="110" width="3" height="2" rx="0.5" fill="#fff"/>
+          <circle cx="145.5" cy="110" r="3" stroke="#fff" stroke-width="1.1" fill="none"/>
+        </g>
+        <g class="microwave-pin" id="mpin-allen" aria-label="Allen CSE Microwave">
+          <circle cx="278" cy="545" r="16" fill="#5856D6" stroke="#fff" stroke-width="2"/>
+          <rect x="267" y="538" width="22" height="14" rx="2.5" stroke="#fff" stroke-width="1.5" fill="none"/>
+          <rect x="268.5" y="539.5" width="14" height="11" rx="1.5" stroke="#fff" stroke-width="1.1" fill="none"/>
+          <rect x="284" y="541.5" width="3" height="2" rx="0.5" fill="#fff"/>
+          <rect x="284" y="545" width="3" height="2" rx="0.5" fill="#fff"/>
+          <circle cx="275.5" cy="545" r="3" stroke="#fff" stroke-width="1.1" fill="none"/>
+        </g>
+      </svg>
+    </div>
 
-        // Add layers to main canvas window instantly
-        Object.values(layers).forEach(layer => layer.addTo(map));
+    <!-- Toolbar -->
+    <div class="map-toolbar" role="toolbar" aria-label="Map filters">
+      <button class="tool-btn active" id="btnMicrowave" onclick="toggleMicrowaves()" aria-pressed="true" title="Microwaves" aria-label="Toggle microwaves">
+        <!-- Microwave SVG icon -->
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="5" width="20" height="14" rx="2.5" stroke="#007AFF" stroke-width="1.8" fill="none"/>
+          <rect x="3.5" y="6.5" width="13" height="11" rx="1.5" fill="none" stroke="#007AFF" stroke-width="1.3"/>
+          <rect x="18" y="9" width="2.5" height="2" rx="0.5" fill="#007AFF"/>
+          <rect x="18" y="12" width="2.5" height="2" rx="0.5" fill="#007AFF"/>
+          <circle cx="10" cy="12" r="3" stroke="#007AFF" stroke-width="1.2" fill="none"/>
+        </svg>
+        <span class="tool-dot"></span>
+      </button>
+      <button class="tool-btn" id="btnWater" onclick="showToast('Water fountains shown')" title="Water fountains" aria-label="Toggle water fountains">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M11 3 C11 3 5 10 5 14 a6 6 0 0 0 12 0 C17 10 11 3 11 3Z" stroke="#5AC8FA" stroke-width="1.6" fill="none"/>
+        </svg>
+      </button>
+      <button class="tool-btn" id="btnPeriod" onclick="showToast('Period product stations shown')" title="Period products" aria-label="Toggle period product stations">
+        <svg width="20" height="22" viewBox="0 0 20 22" fill="none" aria-hidden="true">
+          <path d="M10 2 L10 20 M6 6 Q10 10 14 6 M6 14 Q10 18 14 14" stroke="#FF2D55" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="tool-btn active" id="btnToilet" onclick="toggleToilets()" aria-pressed="true" title="Restrooms" aria-label="Toggle restrooms">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M6 2 h10 a2 2 0 0 1 2 2v6 a6 6 0 0 1-12 0V4 a2 2 0 0 1 2-2Z" stroke="#34C759" stroke-width="1.6" fill="none"/>
+          <path d="M8 10 h6" stroke="#34C759" stroke-width="1.4" stroke-linecap="round"/>
+          <rect x="9" y="16" width="4" height="4" rx="1" fill="#34C759" opacity="0.7"/>
+        </svg>
+        <span class="tool-dot" style="background:#34C759"></span>
+      </button>
+    </div>
 
-        // Location Feature Mappings structured directly from your UI screen capture
-        const pointsOfInterest = [
-            { type: 'restroom', coords: [47.6562, -122.3077], name: 'The Quad Restroom' },
-            { type: 'restroom', coords: [47.6553, -122.3061], name: 'Red Square Restroom' },
-            { type: 'restroom', coords: [47.6536, -122.3055], name: 'Paul G. Allen Center Restroom' },
-            { type: 'microwave', coords: [47.6538, -122.3060], name: 'Paul G. Allen Center Microwave' },
-            { type: 'restroom', coords: [47.6545, -122.3101], name: 'Hans Rosling Center Restroom' },
-            { type: 'microwave', coords: [47.6572, -122.3097], name: 'UW Law School Microwave' },
-            { type: 'restroom', coords: [47.6568, -122.3092], name: 'UW Law School Restroom' }
-        ];
+    <!-- Location button -->
+    <button class="location-btn" aria-label="My location" onclick="showToast('Locating you...')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="11" r="3" fill="#007AFF"/>
+        <circle cx="11" cy="11" r="7" stroke="#007AFF" stroke-width="1.5" fill="none"/>
+        <line x1="11" y1="1" x2="11" y2="4" stroke="#007AFF" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="11" y1="18" x2="11" y2="21" stroke="#007AFF" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="1" y1="11" x2="4" y2="11" stroke="#007AFF" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="18" y1="11" x2="21" y2="11" stroke="#007AFF" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
 
-        // Map icons dynamically configured with matching colors from high-fidelity source image
-        const iconConfig = {
-            microwave: { html: '<i class="fa-solid fa-cookie-bite"></i>', class: 'marker-microwave' },
-            restroom: { html: '<i class="fa-solid fa-toilet"></i>', class: 'marker-restroom' },
-            water: { html: '<i class="fa-solid fa-droplet"></i>', class: 'marker-water' },
-            menstrual: { html: '<i class="fa-solid fa-circle-h"></i>', class: 'marker-menstrual' }
-        };
+    <!-- ── SHEET OVERLAY ── -->
+    <div class="sheet-overlay" id="overlay">
+      <div class="sheet-backdrop" onclick="closeAll()"></div>
+      <div class="sheet" id="mainSheet">
 
-        // Populate system map entries
-        pointsOfInterest.forEach(poi => {
-            const cfg = iconConfig[poi.type];
-            const customIcon = L.divIcon({
-                html: cfg.html,
-                className: `custom-marker ${cfg.class}`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
-            });
+        <!-- ── LIST VIEW ── -->
+        <div id="viewList">
+          <div class="sheet-handle-wrap">
+            <div class="sheet-handle"></div>
+          </div>
+          <div class="sheet-header">
+            <div style="width:30px"></div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span class="sheet-header-icon">🔒</span>
+              <div class="sheet-header-title" id="listTitle">UW School of Law Restrooms</div>
+            </div>
+            <button class="close-btn" onclick="closeAll()" aria-label="Close">✕</button>
+          </div>
 
-            L.marker(poi.coords, { icon: customIcon })
-                .bindPopup(`<b>${poi.name}</b><br>Available for campus use.`)
-                .addTo(layers[poi.type]);
-        });
+          <div class="sheet-section" id="restroomList">
+            <!-- Items injected by JS -->
+          </div>
 
-        // Sidebar Feature Filter Logic Toggle
-        function toggleLayer(type, button) {
-            if (map.hasLayer(layers[type])) {
-                map.removeLayer(layers[type]);
-                button.classList.remove('active');
-            } else {
-                map.addLayer(layers[type]);
-                button.classList.add('active');
-            }
-        }
+          <div class="report-new-wrap">
+            <button class="report-new-btn" onclick="openNewReport()">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <circle cx="9" cy="9" r="8" stroke="#007AFF" stroke-width="1.5"/>
+                <path d="M9 5v8M5 9h8" stroke="#007AFF" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Report a new restroom
+            </button>
+          </div>
+        </div>
 
-        // Recenter back to current view frame tracking
-        function recenterMap() {
-            map.flyTo(uwCenter, 16.5, { animate: true, duration: 1.2 });
-        }
+        <!-- ── RATING VIEW ── -->
+        <div id="viewRating" style="display:none">
+          <div class="sheet-handle-wrap">
+            <div class="sheet-handle"></div>
+          </div>
+          <div class="sheet-header">
+            <button class="close-btn" onclick="goBack()" aria-label="Back" style="background:none;color:#007AFF;font-size:15px;font-weight:600;width:auto;padding:0 4px">‹ Back</button>
+            <div class="sheet-header-title" id="ratingTitle">Rate Restroom</div>
+            <div style="width:56px"></div>
+          </div>
+          <div class="sheet-section">
+            <div class="rating-section">
+              <div class="rating-label">Your rating</div>
+              <div class="stars-interactive" id="starsInput" role="group" aria-label="Star rating">
+                <span class="star-tap filled" data-val="1" onclick="setStars(1)" role="button" tabindex="0" aria-label="1 star">★</span>
+                <span class="star-tap filled" data-val="2" onclick="setStars(2)" role="button" tabindex="0" aria-label="2 stars">★</span>
+                <span class="star-tap filled" data-val="3" onclick="setStars(3)" role="button" tabindex="0" aria-label="3 stars">★</span>
+                <span class="star-tap empty" data-val="4" onclick="setStars(4)" role="button" tabindex="0" aria-label="4 stars">★</span>
+                <span class="star-tap empty" data-val="5" onclick="setStars(5)" role="button" tabindex="0" aria-label="5 stars">★</span>
+              </div>
+              <div style="text-align:center;font-size:15px;color:var(--ios-gray);margin-bottom:4px" id="ratingCaption">3 out of 5 stars</div>
+            </div>
+          </div>
+          <div style="padding:0 16px 8px">
+            <button class="primary-btn" onclick="submitRating()">Submit Rating</button>
+            <button class="secondary-btn" onclick="goBack()">Cancel</button>
+          </div>
+        </div>
 
-        // Quick alert prototype mockup action for interactive elements
-        function triggerChatAlert() {
-            alert("AI Campus Assistant: How can I help you navigate amenities today?");
-        }
-    </script>
+        <!-- ── REPORT VIEW ── -->
+        <div id="viewReport" style="display:none">
+          <div class="sheet-handle-wrap">
+            <div class="sheet-handle"></div>
+          </div>
+          <div class="sheet-header">
+            <button class="close-btn" onclick="goBack()" aria-label="Back" style="background:none;color:#007AFF;font-size:15px;font-weight:600;width:auto;padding:0 4px">‹ Back</button>
+            <div class="sheet-header-title" id="reportTitle">Report Issue</div>
+            <div style="width:56px"></div>
+          </div>
+          <div class="section-label">Is this restroom broken or missing?</div>
+          <div class="sheet-section" style="padding:12px 14px">
+            <div class="segment-wrap">
+              <button class="seg-btn active" id="segBroken" onclick="selectType('broken')" aria-pressed="true">Broken</button>
+              <button class="seg-btn" id="segMissing" onclick="selectType('missing')" aria-pressed="false">Missing</button>
+            </div>
+          </div>
+          <div id="brokenExtra">
+            <div class="section-label">Which part is broken?</div>
+            <div class="ios-input-wrap">
+              <input type="text" id="brokenDesc" placeholder="Describe the issue" aria-label="Describe the issue"/>
+              <button class="ios-clear" onclick="document.getElementById('brokenDesc').value=''" aria-label="Clear text">✕</button>
+            </div>
+            <p class="section-footer">Your report helps keep campus facilities in good shape.</p>
+          </div>
+          <div style="padding:16px 16px 8px">
+            <button class="primary-btn danger" onclick="submitReport()">Submit Report</button>
+            <button class="secondary-btn" onclick="goBack()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- ── NEW RESTROOM VIEW ── -->
+        <div id="viewNew" style="display:none">
+          <div class="sheet-handle-wrap">
+            <div class="sheet-handle"></div>
+          </div>
+          <div class="sheet-header">
+            <button class="close-btn" onclick="goBack()" aria-label="Back" style="background:none;color:#007AFF;font-size:15px;font-weight:600;width:auto;padding:0 4px">‹ Back</button>
+            <div class="sheet-header-title" id="newTitle">Report New Restroom</div>
+            <div style="width:56px"></div>
+          </div>
+          <div class="section-label">Where is it located?</div>
+          <div class="ios-input-wrap">
+            <input type="text" id="locationDesc" placeholder="e.g. Third floor, east wing" aria-label="Restroom location"/>
+            <button class="ios-clear" onclick="document.getElementById('locationDesc').value=''" aria-label="Clear text">✕</button>
+          </div>
+          <div class="section-label" style="margin-top:8px">How would you rate it?</div>
+          <div class="sheet-section">
+            <div class="rating-section">
+              <div class="stars-interactive" id="newStarsInput" role="group" aria-label="Star rating for new restroom">
+                <span class="star-tap filled" data-val="1" onclick="setNewStars(1)" role="button" tabindex="0">★</span>
+                <span class="star-tap filled" data-val="2" onclick="setNewStars(2)" role="button" tabindex="0">★</span>
+                <span class="star-tap filled" data-val="3" onclick="setNewStars(3)" role="button" tabindex="0">★</span>
+                <span class="star-tap empty" data-val="4" onclick="setNewStars(4)" role="button" tabindex="0">★</span>
+                <span class="star-tap empty" data-val="5" onclick="setNewStars(5)" role="button" tabindex="0">★</span>
+              </div>
+              <div style="text-align:center;font-size:15px;color:var(--ios-gray)" id="newRatingCaption">3 out of 5 stars</div>
+            </div>
+          </div>
+          <p class="section-footer">New restroom reports are reviewed before being added to the map.</p>
+          <div style="padding:8px 16px 8px">
+            <button class="primary-btn" onclick="submitNew()">Submit</button>
+            <button class="secondary-btn" onclick="goBack()">Cancel</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- AI Chat FAB -->
+    <button class="chat-fab" onclick="showToast('AI assistant coming soon!')" aria-label="Open AI chat assistant">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <!-- Chat bubble body -->
+        <path d="M4 6C4 4.895 4.895 4 6 4H22C23.105 4 24 4.895 24 6V18C24 19.105 23.105 20 22 20H16L11 24V20H6C4.895 20 4 19.105 4 18V6Z" fill="#007AFF"/>
+        <!-- Sparkle / AI star top-right -->
+        <path d="M20 3 L20.6 4.6 L22 3 L20.6 1.4 Z" fill="#007AFF"/>
+        <!-- Three dots inside bubble -->
+        <circle cx="10" cy="13" r="1.4" fill="#fff"/>
+        <circle cx="14" cy="13" r="1.4" fill="#fff"/>
+        <circle cx="18" cy="13" r="1.4" fill="#fff"/>
+        <!-- Small sparkle lines indicating AI -->
+        <line x1="20.5" y1="7" x2="20.5" y2="9" stroke="#007AFF" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="19.5" y1="8" x2="21.5" y2="8" stroke="#007AFF" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Home indicator -->
+    <div class="home-indicator"></div>
+  </div>
+</div>
+
+<script>
+const LOCATIONS = {
+  'uw-law': {
+    name: 'UW School of Law Restrooms',
+    restrooms: [
+      { id: 'law-1', name: 'East Entrance, L2', rating: 4 },
+      { id: 'law-2', name: 'West Entrance, L2', rating: 4 },
+      { id: 'law-3', name: 'Gallhager Law Library, L1', rating: 5 }
+    ]
+  },
+  'henry': {
+    name: 'Henry Art Gallery Restrooms',
+    restrooms: [
+      { id: 'henry-1', name: 'Main Floor', rating: 3 },
+      { id: 'henry-2', name: 'Lower Level', rating: 4 }
+    ]
+  },
+  'quad': {
+    name: 'The Quad Restrooms',
+    restrooms: [
+      { id: 'quad-1', name: 'North Building', rating: 3 },
+      { id: 'quad-2', name: 'South Building', rating: 4 }
+    ]
+  },
+  'rosling': {
+    name: 'Hans Rosling Center Restrooms',
+    restrooms: [
+      { id: 'rosling-1', name: 'L1 Main Entrance', rating: 5 },
+      { id: 'rosling-2', name: 'L2 East Wing', rating: 4 }
+    ]
+  },
+  'allen': {
+    name: 'Allen CS&E Restrooms',
+    restrooms: [
+      { id: 'allen-1', name: 'L1 West', rating: 4 },
+      { id: 'allen-2', name: 'L2 Study Lounge', rating: 5 }
+    ]
+  }
+};
+
+// SVG thumbnails (different color variants for variety)
+function bathroomSVG(c1, c2, c3) {
+  return `<svg viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="70" fill="${c1}"/>
+    <rect x="0" y="42" width="80" height="28" fill="${c2}"/>
+    <rect x="5" y="44" width="24" height="18" fill="${c3}" rx="2"/>
+    <rect x="33" y="44" width="24" height="18" fill="${c3}" rx="2"/>
+    <rect x="5" y="14" width="70" height="26" fill="${c2}" rx="2"/>
+    <rect x="8" y="17" width="16" height="20" fill="${c3}" rx="1"/>
+    <rect x="28" y="17" width="16" height="20" fill="${c3}" rx="1"/>
+    <rect x="48" y="17" width="16" height="20" fill="${c3}" rx="1"/>
+  </svg>`;
+}
+const thumbs = [
+  bathroomSVG('#c5b9a8','#b8a99a','#d4c4b2'),
+  bathroomSVG('#c0b5a5','#ad9e8e','#cfbfad'),
+  bathroomSVG('#b8b0a0','#a89888','#ccbcaa'),
+  bathroomSVG('#ccc0ae','#b8a898','#d8c8b6'),
+  bathroomSVG('#bfb5a3','#b0a090','#cfc0ac')
+];
+
+function starsHTML(n, max=5, large=false) {
+  const sz = large ? '16px' : '13px';
+  let h = '';
+  for (let i=1;i<=max;i++)
+    h += `<span class="${i<=n?'star-filled':'star-empty'}" style="font-size:${sz}">${i<=n?'★':'★'}</span>`;
+  return h;
+}
+
+let currentLoc = null;
+let currentRestroom = null;
+let currentRating = 3;
+let newRating = 3;
+let microwavesOn = true;
+let toiletsOn = true;
+
+function openList(locKey) {
+  currentLoc = locKey;
+  const loc = LOCATIONS[locKey];
+  document.getElementById('listTitle').textContent = loc.name;
+
+  const list = document.getElementById('restroomList');
+  list.innerHTML = loc.restrooms.map((r, i) => `
+    <div class="restroom-card">
+      <div class="restroom-photo">${thumbs[i % thumbs.length]}</div>
+      <div class="restroom-details">
+        <div class="restroom-location-label">Location</div>
+        <div class="restroom-name">${r.name}</div>
+        <div class="stars-display" aria-label="${r.rating} out of 5 stars">${starsHTML(r.rating)}</div>
+        <div class="card-actions">
+          <button class="card-btn card-btn-rating" onclick="openRating('${r.id}','${r.name}')" aria-label="Add rating for ${r.name}">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 1l1.5 3.2L12 4.7l-2.5 2.4.6 3.4L7 8.9l-3.1 1.6.6-3.4L2 4.7l3.5-.5L7 1Z" fill="white"/>
+            </svg>
+            Rate this restroom
+          </button>
+          <button class="card-btn card-btn-report" onclick="openReport('${r.id}','${r.name}')" aria-label="Report issue for ${r.name}">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3" fill="none"/>
+              <path d="M7 4v4M7 9.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            Report issue
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  showView('viewList');
+  document.getElementById('overlay').classList.add('active');
+}
+
+function showView(id) {
+  ['viewList','viewRating','viewReport','viewNew'].forEach(v => {
+    document.getElementById(v).style.display = v===id ? 'block' : 'none';
+  });
+}
+
+function goBack() {
+  if (currentLoc) openList(currentLoc);
+  else closeAll();
+}
+
+function closeAll() {
+  document.getElementById('overlay').classList.remove('active');
+}
+
+function openRating(rid, rname) {
+  currentRestroom = rid;
+  document.getElementById('ratingTitle').textContent = rname;
+  setStars(3);
+  showView('viewRating');
+}
+
+function openReport(rid, rname) {
+  currentRestroom = rid;
+  document.getElementById('reportTitle').textContent = rname;
+  selectType('broken');
+  document.getElementById('brokenDesc').value = '';
+  showView('viewReport');
+}
+
+function openNewReport() {
+  const loc = LOCATIONS[currentLoc];
+  document.getElementById('newTitle').textContent = 'Report New Restroom';
+  document.getElementById('locationDesc').value = '';
+  setNewStars(3);
+  showView('viewNew');
+}
+
+const starCaptions = ['','Terrible','Poor','Okay','Good','Excellent'];
+function setStars(n) {
+  currentRating = n;
+  document.querySelectorAll('#starsInput .star-tap').forEach((s,i) => {
+    s.classList.toggle('filled', i<n);
+    s.classList.toggle('empty', i>=n);
+  });
+  document.getElementById('ratingCaption').textContent = `${n} out of 5 — ${starCaptions[n]}`;
+}
+function setNewStars(n) {
+  newRating = n;
+  document.querySelectorAll('#newStarsInput .star-tap').forEach((s,i) => {
+    s.classList.toggle('filled', i<n);
+    s.classList.toggle('empty', i>=n);
+  });
+  document.getElementById('newRatingCaption').textContent = `${n} out of 5 — ${starCaptions[n]}`;
+}
+
+function selectType(type) {
+  document.getElementById('segBroken').classList.toggle('active', type==='broken');
+  document.getElementById('segBroken').setAttribute('aria-pressed', type==='broken');
+  document.getElementById('segMissing').classList.toggle('active', type==='missing');
+  document.getElementById('segMissing').setAttribute('aria-pressed', type==='missing');
+  document.getElementById('brokenExtra').style.display = type==='broken' ? 'block' : 'none';
+}
+
+function submitRating() {
+  closeAll();
+  showToast(`★ ${currentRating}-star rating submitted!`);
+}
+function submitReport() {
+  closeAll();
+  showToast('Report submitted — thank you!');
+}
+function submitNew() {
+  closeAll();
+  showToast('New restroom reported!');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function toggleMicrowaves() {
+  microwavesOn = !microwavesOn;
+  document.querySelectorAll('.microwave-pin').forEach(p => {
+    p.style.display = microwavesOn ? '' : 'none';
+  });
+  const btn = document.getElementById('btnMicrowave');
+  btn.classList.toggle('active', microwavesOn);
+  btn.setAttribute('aria-pressed', microwavesOn);
+  showToast(microwavesOn ? 'Microwaves shown' : 'Microwaves hidden');
+}
+
+function toggleToilets() {
+  toiletsOn = !toiletsOn;
+  document.querySelectorAll('.map-pin').forEach(p => {
+    p.style.display = toiletsOn ? '' : 'none';
+  });
+  const btn = document.getElementById('btnToilet');
+  btn.classList.toggle('active', toiletsOn);
+  btn.setAttribute('aria-pressed', toiletsOn);
+  showToast(toiletsOn ? 'Restrooms shown' : 'Restrooms hidden');
+}
+</script>
 </body>
 </html>
