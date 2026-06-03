@@ -125,4 +125,173 @@
         .ai-chat-bubble {
             position: absolute;
             bottom: 40px;
-            right:
+            right: 24px;
+            width: 60px;
+            height: 60px;
+            background: #ffffff;
+            border-radius: 50%;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .ai-chat-bubble:active {
+            transform: scale(0.9);
+        }
+
+        .ai-chat-inner {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #e5e5ea;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #1c1c1e;
+            font-size: 22px;
+        }
+
+        /* Custom Map Marker Leaflet Classes */
+        .custom-marker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            border: 1.5px solid rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+        }
+
+        .marker-microwave { background-color: var(--purple-icon); color: white; }
+        .marker-restroom { background-color: var(--green-icon); color: #111; }
+        .marker-water { background-color: var(--blue-icon); color: white; }
+        .marker-menstrual { background-color: var(--red-icon); color: white; }
+
+        /* Leaflet adjustment overrides to blend neatly into dark theme Apple UI */
+        .leaflet-control-zoom { display: none !important; }
+        .leaflet-attribution-control { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <div id="map"></div>
+        <div class="map-overlay"></div>
+
+        <div class="ios-sidebar">
+            <button class="sidebar-btn microwave active" onclick="toggleLayer('microwave', this)" title="Microwaves">
+                <i class="fa-solid fa-cookie-bite"></i>
+            </button>
+            <button class="sidebar-btn water active" onclick="toggleLayer('water', this)" title="Water Stations">
+                <i class="fa-solid fa-droplet"></i>
+            </button>
+            <button class="sidebar-btn menstrual active" onclick="toggleLayer('menstrual', this)" title="Menstrual Products">
+                <i class="fa-solid fa-circle-h"></i>
+            </button>
+            <button class="sidebar-btn restroom active" onclick="toggleLayer('restroom', this)" title="Restrooms">
+                <i class="fa-solid fa-toilet"></i>
+            </button>
+            <button class="sidebar-btn location" onclick="recenterMap()" title="Current Location">
+                <i class="fa-solid fa-location-arrow"></i>
+            </button>
+        </div>
+
+        <div class="ai-chat-bubble" onclick="triggerChatAlert()">
+            <div class="ai-chat-inner">
+                <i class="fa-solid fa-comment-dots"></i>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Coordinates pinned directly to the University of Washington main campus footprint from your mockup
+        const uwCenter = [47.6553, -122.3078];
+        
+        // Initialize Map engine with sleek dark theme settings
+        const map = L.map('map', {
+            center: uwCenter,
+            zoom: 16.5,
+            zoomControl: false,
+            minZoom: 15,
+            maxZoom: 19
+        });
+
+        // Apply Premium Dark Matter map skin mimicking modern Apple Maps configuration
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: 'CartoDB'
+        }).addTo(map);
+
+        // Marker Storage Groups
+        const layers = {
+            microwave: L.layerGroup(),
+            water: L.layerGroup(),
+            menstrual: L.layerGroup(),
+            restroom: L.layerGroup()
+        };
+
+        // Add layers to main canvas window instantly
+        Object.values(layers).forEach(layer => layer.addTo(map));
+
+        // Location Feature Mappings structured directly from your UI screen capture
+        const pointsOfInterest = [
+            { type: 'restroom', coords: [47.6562, -122.3077], name: 'The Quad Restroom' },
+            { type: 'restroom', coords: [47.6553, -122.3061], name: 'Red Square Restroom' },
+            { type: 'restroom', coords: [47.6536, -122.3055], name: 'Paul G. Allen Center Restroom' },
+            { type: 'microwave', coords: [47.6538, -122.3060], name: 'Paul G. Allen Center Microwave' },
+            { type: 'restroom', coords: [47.6545, -122.3101], name: 'Hans Rosling Center Restroom' },
+            { type: 'microwave', coords: [47.6572, -122.3097], name: 'UW Law School Microwave' },
+            { type: 'restroom', coords: [47.6568, -122.3092], name: 'UW Law School Restroom' }
+        ];
+
+        // Map icons dynamically configured with matching colors from high-fidelity source image
+        const iconConfig = {
+            microwave: { html: '<i class="fa-solid fa-cookie-bite"></i>', class: 'marker-microwave' },
+            restroom: { html: '<i class="fa-solid fa-toilet"></i>', class: 'marker-restroom' },
+            water: { html: '<i class="fa-solid fa-droplet"></i>', class: 'marker-water' },
+            menstrual: { html: '<i class="fa-solid fa-circle-h"></i>', class: 'marker-menstrual' }
+        };
+
+        // Populate system map entries
+        pointsOfInterest.forEach(poi => {
+            const cfg = iconConfig[poi.type];
+            const customIcon = L.divIcon({
+                html: cfg.html,
+                className: `custom-marker ${cfg.class}`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+
+            L.marker(poi.coords, { icon: customIcon })
+                .bindPopup(`<b>${poi.name}</b><br>Available for campus use.`)
+                .addTo(layers[poi.type]);
+        });
+
+        // Sidebar Feature Filter Logic Toggle
+        function toggleLayer(type, button) {
+            if (map.hasLayer(layers[type])) {
+                map.removeLayer(layers[type]);
+                button.classList.remove('active');
+            } else {
+                map.addLayer(layers[type]);
+                button.classList.add('active');
+            }
+        }
+
+        // Recenter back to current view frame tracking
+        function recenterMap() {
+            map.flyTo(uwCenter, 16.5, { animate: true, duration: 1.2 });
+        }
+
+        // Quick alert prototype mockup action for interactive elements
+        function triggerChatAlert() {
+            alert("AI Campus Assistant: How can I help you navigate amenities today?");
+        }
+    </script>
+</body>
+</html>
